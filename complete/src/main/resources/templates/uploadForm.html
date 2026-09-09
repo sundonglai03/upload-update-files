@@ -1,26 +1,273 @@
+<!DOCTYPE html>
 <html xmlns:th="https://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>File Manager</title>
+    <style>
+        :root {
+            --bg: #f4f7fb;
+            --card: #ffffff;
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --text: #1f2937;
+            --muted: #6b7280;
+            --border: #e5e7eb;
+            --shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: linear-gradient(135deg, #eef4ff 0%, var(--bg) 100%);
+            color: var(--text);
+        }
+
+        .page {
+            max-width: 1100px;
+            margin: 48px auto;
+            padding: 24px;
+        }
+
+        .panel {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .header {
+            padding: 28px 32px 18px;
+            border-bottom: 1px solid var(--border);
+            background: linear-gradient(180deg, #ffffff 0%, #f9fbff 100%);
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: clamp(1.8rem, 2vw, 2.4rem);
+            letter-spacing: -0.04em;
+        }
+
+        .header p {
+            margin: 8px 0 0;
+            color: var(--muted);
+            font-size: 0.98rem;
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 1.05fr 1.35fr;
+            gap: 24px;
+            padding: 24px 32px 32px;
+        }
+
+        .card {
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            background: #fff;
+            padding: 22px;
+        }
+
+        .card h2 {
+            margin: 0 0 18px;
+            font-size: 1.3rem;
+        }
+
+        .upload-box {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .upload-input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px dashed #cbd5e1;
+            border-radius: 14px;
+            background: #f8fafc;
+            color: var(--text);
+        }
+
+        .primary-btn,
+        .danger-btn {
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.15s ease, opacity 0.15s ease;
+        }
+
+        .primary-btn {
+            background: var(--primary);
+            color: #fff;
+            padding: 12px 18px;
+            min-width: 120px;
+        }
+
+        .primary-btn:hover,
+        .danger-btn:hover {
+            transform: translateY(-1px);
+            opacity: 0.96;
+        }
+
+        .primary-btn:hover { background: var(--primary-dark); }
+
+        .danger-btn {
+            background: #fff1f2;
+            color: var(--danger);
+            border: 1px solid #fecdd3;
+            padding: 8px 12px;
+            font-size: 0.85rem;
+        }
+
+        .message {
+            margin: 18px 0 0;
+            padding: 12px 14px;
+            border-radius: 12px;
+            background: #ecfdf5;
+            border: 1px solid #bbf7d0;
+            color: #166534;
+            font-weight: 500;
+        }
+
+        .file-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 14px 16px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: #f8fafc;
+        }
+
+        .file-meta {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+            flex: 1;
+        }
+
+        .file-icon {
+            width: 36px;
+            height: 36px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            background: #dbeafe;
+            color: var(--primary);
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .file-name {
+            display: block;
+            font-weight: 600;
+            color: var(--text);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            text-decoration: none;
+        }
+
+        .file-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .download-link {
+            text-decoration: none;
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .empty-state {
+            padding: 26px 18px;
+            border: 1px dashed #cbd5e1;
+            border-radius: 12px;
+            color: var(--muted);
+            background: #f8fafc;
+            text-align: center;
+        }
+
+        @media (max-width: 760px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+
+            .file-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .file-actions {
+                width: 100%;
+                justify-content: space-between;
+            }
+        }
+    </style>
+</head>
 <body>
+    <div class="page">
+        <div class="panel">
+            <div class="header">
+                <h1>File Manager</h1>
+                <p>Upload, review and manage files in one place.</p>
+            </div>
 
-	<div th:if="${message}">
-		<h2 th:text="${message}"/>
-	</div>
+            <div class="content">
+                <section class="card">
+                    <h2>Upload File</h2>
+                    <form class="upload-box" method="POST" enctype="multipart/form-data" action="/upload">
+                        <input class="upload-input" type="file" name="file" />
+                        <button class="primary-btn" type="submit">Upload</button>
+                    </form>
 
-	<div>
-		<form method="POST" enctype="multipart/form-data" action="/">
-			<table>
-				<tr><td>File to upload:</td><td><input type="file" name="file" /></td></tr>
-				<tr><td></td><td><input type="submit" value="Upload" /></td></tr>
-			</table>
-		</form>
-	</div>
+                    <div class="message" th:if="${message}" th:text="${message}"></div>
+                </section>
 
-	<div>
-		<ul>
-			<li th:each="file : ${files}">
-				<a th:href="${file}" th:text="${file}" />
-			</li>
-		</ul>
-	</div>
+                <section class="card">
+                    <h2>Files</h2>
 
+                    <ul class="file-list" th:if="${!#lists.isEmpty(files)}">
+                        <li class="file-item" th:each="file : ${files}">
+                            <div class="file-meta">
+                                <span class="file-icon">F</span>
+                                <a class="file-name" th:href="${file}" th:text="${file.substring(file.lastIndexOf('/') + 1)}" download></a>
+                            </div>
+                            <div class="file-actions">
+                                <a class="download-link" th:href="${file}" download>Download</a>
+                                <form th:action="@{/files/{filename}/delete(filename=${file.substring(file.lastIndexOf('/') + 1)})}" method="post">
+                                    <button class="danger-btn" type="submit">Delete</button>
+                                </form>
+                            </div>
+                        </li>
+                    </ul>
+
+                    <div class="empty-state" th:if="${#lists.isEmpty(files)}">
+                        No files uploaded yet.
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

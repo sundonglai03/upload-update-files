@@ -1,4 +1,4 @@
-package com.example.uploadingfiles;
+package com.example.filestorage;
 
 import java.net.http.HttpClient;
 import java.util.stream.Stream;
@@ -22,7 +22,7 @@ import org.springframework.util.MultiValueMap;
 
 import static org.mockito.BDDMockito.given;
 
-import com.example.uploadingfiles.storage.StorageService;
+import com.example.filestorage.storage.StorageService;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureRestTestClient
@@ -56,7 +56,7 @@ public class FileUploadIntegrationTests {
         .baseUrl("http://localhost:" + this.port)
         .build();
 
-    noRedirect.post().uri("/").contentType(MediaType.MULTIPART_FORM_DATA)
+    noRedirect.post().uri("/upload").contentType(MediaType.MULTIPART_FORM_DATA)
         .body(map).exchange()
         .expectStatus().isFound()
         .expectHeader().valueMatches(HttpHeaders.LOCATION, "http://localhost:" + this.port + "/.*");

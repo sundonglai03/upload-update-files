@@ -1,4 +1,4 @@
-package com.example.uploadingfiles;
+package com.example.filestorage;
 
 import java.nio.file.Paths;
 import java.util.stream.Stream;
@@ -21,8 +21,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.example.uploadingfiles.storage.StorageFileNotFoundException;
-import com.example.uploadingfiles.storage.StorageService;
+import com.example.filestorage.storage.StorageFileNotFoundException;
+import com.example.filestorage.storage.StorageService;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -49,7 +49,7 @@ public class FileUploadTests {
   public void shouldSaveUploadedFile() throws Exception {
     MockMultipartFile multipartFile = new MockMultipartFile("file", "test.txt",
         "text/plain", "Spring Framework".getBytes());
-    this.mvc.perform(multipart("/").file(multipartFile))
+    this.mvc.perform(multipart("/upload").file(multipartFile))
         .andExpect(status().isFound())
         .andExpect(header().string("Location", "/"));
 

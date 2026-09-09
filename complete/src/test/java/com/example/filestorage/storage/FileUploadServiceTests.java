@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.example.uploadingfiles.storage;
+package com.example.filestorage.storage;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -31,27 +31,27 @@ import org.springframework.mock.web.MockMultipartFile;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class FileSystemStorageServiceTests {
+public class FileUploadServiceTests {
 
   private StorageProperties properties = new StorageProperties();
 
-  private FileSystemStorageService service;
+  private LocalFileStorageService service;
 
   @BeforeEach
   public void init() {
     properties.setLocation("target/files/" + Math.abs(new Random().nextLong()));
-    service = new FileSystemStorageService(properties);
+    service = new LocalFileStorageService(properties);
     service.init();
   }
 
-    @Test
-    public void emptyUploadLocation() {
-        service = null;
-        properties.setLocation("");
-        assertThrows(StorageException.class, () -> {
-            service = new FileSystemStorageService(properties);
+  @Test
+  public void emptyUploadLocation() {
+    service = null;
+    properties.setLocation("");
+    assertThrows(StorageException.class, () -> {
+      new LocalFileStorageService(properties);
     });
-    }
+  }
 
   @Test
   public void loadNonExistent() {
