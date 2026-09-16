@@ -1,210 +1,127 @@
-# File Upload Download Demo
+# files-upload-download
 
-这是一个 Spring Boot 文件上传下载示例，当前项目支持三种存储方式：
+Spring Boot 文件上传、下载和删除服务，支持本地目录、数据库和 MinIO 三种存储后端。
 
-- 本地文件存储：`storage.type=local`
-- 数据库存储：`storage.type=database`
-- 对象存储：`storage.type=object`
+服务启动只初始化存储，不会清空已有文件或数据库记录。
 
-项目默认可直接运行，默认使用本地文件存储；也可以切换到 MySQL 或 MinIO。
+## Docker 启动
 
-## 功能概览
+```bash
+cd complete
+docker compose up -d --build
+docker compose logs -f files-upload-download
+```
 
-- 上传文件
-- 列出已上传文件
-- 下载文件
-- 删除文件
-- 支持本地、数据库、对象存储三种后端
-- 可在 `application.properties` 中切换配置
+- 页面：`http://127.0.0.1:8080`
+- 健康检查：`http://127.0.0.1:8080/health`
+- 镜像：`files-upload-download:0.0.1`
+- 容器：`files-upload-download`
+- 本地文件：`complete/upload-dir/`
 
-## 目录结构
+默认只绑定宿主机回环地址。需要局域网访问时，把 Compose 端口改成 `8080:8080`，并设置访问令牌：
+
+```bash
+export FILES_AUTH_TOKEN='替换为随机长字符串'
+docker compose up -d
+```
+
+设置后，除 `/health` 外的请求必须携带：
+
+```http
+Authorization: Bearer 替换为随机长字符串
+```
+
+## 本地开发
+
+```bash
+cd complete
+mvn clean test
+mvn spring-boot:run
+```
+
+需要 Java 17 和 Maven。
+
+## 接口
+
+| 方法 | 路径 | 作用 |
+| --- | --- | --- |
+| GET | `/` | 文件列表和上传页面 |
+| POST | `/upload` | 上传文件，表单字段名为 `file` |
+| GET | `/files/{filename}` | 下载文件 |
+| POST | `/files/{filename}/delete` | 删除文件 |
+| GET | `/health` | 健康检查，不需要 Token |
+
+文件名不能包含路径分隔符或控制字符，避免把文件写到存储根目录之外。
+
+## 存储方式
+
+通过 `STORAGE_TYPE` 选择：`local`、`database` 或 `object`。
+
+### 本地目录
+
+这是默认方式：
+
+```dotenv
+STORAGE_TYPE=local
+STORAGE_LOCATION=/data
+```
+
+Compose 已把 `./upload-dir` 挂载到容器的 `/data`。
+
+### 数据库
+
+项目已包含 H2 和 MySQL 驱动。使用 MySQL：
+
+```dotenv
+STORAGE_TYPE=database
+SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/filedb?useSSL=false&serverTimezone=UTC&characterEncoding=utf8mb4
+SPRING_DATASOURCE_USERNAME=fileapp
+SPRING_DATASOURCE_PASSWORD=替换为真实密码
+```
+
+生产环境应使用专用低权限账号，不要把密码写入仓库。
+
+### MinIO
+
+```dotenv
+STORAGE_TYPE=object
+STORAGE_ENDPOINT=http://minio:9000
+STORAGE_ACCESS_KEY=替换为AccessKey
+STORAGE_SECRET_KEY=替换为SecretKey
+STORAGE_BUCKET=file-upload-demo
+STORAGE_REGION=us-east-1
+```
+
+AccessKey 和 SecretKey 没有默认值；选择对象存储时必须显式提供。HTTP/HTTPS 由 `STORAGE_ENDPOINT` 的协议决定。
+
+## 常用环境变量
+
+| 变量 | 默认值 | 说明 |
+| --- | --- | --- |
+| `FILES_AUTH_TOKEN` | 空 | Bearer Token；为空时关闭认证 |
+| `STORAGE_TYPE` | `local` | 存储后端 |
+| `STORAGE_LOCATION` | `upload-dir` | 本地存储目录 |
+| `MAX_FILE_SIZE` | `10MB`（Compose） | 单文件大小上限 |
+| `MAX_REQUEST_SIZE` | `10MB`（Compose） | 单请求大小上限 |
+
+## 项目结构
 
 ```text
 complete/
+├── Dockerfile
+├── docker-compose.yml
 ├── pom.xml
-├── src/
-│   ├── main/
-│   │   ├── java/
-│   │   │   └── com/example/uploadingfiles/
-│   │   │       ├── FileUploadDownloadApplication.java
-│   │   │       ├── UploadController.java
-│   │   │       ├── DownloadController.java
-│   │   │       └── storage/
-│   │   │           ├── FileUploadService.java
-│   │   │           ├── StorageException.java
-│   │   │           ├── StorageFileNotFoundException.java
-│   │   │           ├── StorageProperties.java
-│   │   │           └── StorageService.java
-│   │   ├── resources/
-│   │   │   ├── application.properties
-│   │   │   └── templates/
-│   │   │       └── uploadForm.html
-│   └── test/
-│       └── java/com/example/uploadingfiles/
-│           ├── FileUploadIntegrationTests.java
-│           ├── FileUploadTests.java
-│           └── storage/
-│               └── FileSystemStorageServiceTests.java
+└── src/
+    ├── main/java/com/example/filestorage/
+    ├── main/resources/
+    └── test/java/com/example/filestorage/
 ```
 
-## 启动命令
-
-推荐统一命令如下：
+## 验证
 
 ```bash
 cd complete
-mvn clean package
-mvn spring-boot:run
+mvn clean test
+docker compose config
+docker compose build
 ```
-
-或者直接运行：
-
-```bash
-cd complete
-mvn spring-boot:run
-```
-
-启动后访问：
-
-```text
-http://localhost:8080
-```
-
-## 访问方式
-
-### 上传
-
-- 访问首页
-- 选择文件后提交到 `/upload`
-- 上传完成后返回首页并显示成功提示
-
-### 下载
-
-- 首页会列出已上传文件列表
-- 点击对应链接即可下载文件
-- 实际访问地址类似：
-
-```text
-http://localhost:8080/files/test.txt
-```
-
-## 关键实现说明
-
-### 1. 上传实现
-
-`UploadController` 负责处理：
-
-- `GET /`：展示上传页和已上传文件列表
-- `POST /upload`：接收 `MultipartFile` 并调用存储服务保存
-
-### 2. 下载实现
-
-`DownloadController` 负责处理：
-
-- `GET /files/{filename}`：查询文件并返回 `Resource`
-- 设置 `Content-Disposition: attachment` 让浏览器下载文件
-- 未找到文件时返回 `404`
-
-### 3. 存储实现
-
-`FileUploadService`（原 `FileSystemStorageService`）负责存储逻辑：
-
-- 初始化存储目录
-- 校验空文件
-- 校验文件路径是否合法
-- 保存文件到本地目录
-- 根据文件名读取资源
-
-### 4. 配置项
-
-`StorageProperties` 通过 `@ConfigurationProperties("storage")` 读取目录配置，默认目录为：
-
-```text
-upload-dir
-```
-
-`application.properties` 中设置了文件大小限制：
-
-```properties
-spring.servlet.multipart.max-file-size=128KB
-spring.servlet.multipart.max-request-size=128KB
-```
-
-## 本地文件存储
-
-默认使用本地文件方式：
-
-```properties
-storage.type=local
-storage.location=upload-dir
-```
-
-文件会保存到项目下的 `upload-dir` 目录。
-
-## 数据库存储
-
-如果要用数据库存储，配置如下：
-
-```properties
-storage.type=database
-spring.datasource.url=jdbc:mysql://localhost:3306/filedb?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&characterEncoding=utf8mb4
-spring.datasource.username=root
-spring.datasource.password=123456
-spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
-spring.jpa.hibernate.ddl-auto=update
-spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQL8Dialect
-```
-
-MySQL 驱动：
-
-```xml
-<dependency>
-    <groupId>com.mysql</groupId>
-    <artifactId>mysql-connector-j</artifactId>
-    <scope>runtime</scope>
-</dependency>
-```
-
-Spring Boot 默认使用 HikariCP 连接池，常见配置：
-
-```properties
-spring.datasource.hikari.maximum-pool-size=20
-spring.datasource.hikari.minimum-idle=5
-spring.datasource.hikari.connection-timeout=30000
-```
-
-## 对象存储（MinIO）
-
-如果要用对象存储，配置如下：
-
-```properties
-storage.type=object
-storage.endpoint=http://localhost:9000
-storage.access-key=minioadmin
-storage.secret-key=minioadmin
-storage.bucket=file-upload-demo
-storage.region=us-east-1
-storage.secure=false
-```
-
-启动 MinIO 后，程序会自动创建 bucket，并把上传文件保存到对象存储中。
-
-## 启动方式
-
-```bash
-cd complete
-mvn spring-boot:run
-```
-
-访问：
-
-```text
-http://localhost:8080
-```
-
-## 说明
-
-- 默认模式是本地文件存储；不需要额外依赖即可启动。
-- 数据库存储适合小文件和结构化管理。
-- 对象存储适合大文件和生产环境。
-- 具体配置都在 [complete/src/main/resources/application.properties](complete/src/main/resources/application.properties) 中。

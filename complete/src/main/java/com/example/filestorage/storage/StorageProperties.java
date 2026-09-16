@@ -7,11 +7,10 @@ public class StorageProperties {
 
   private String location = "upload-dir";
   private String endpoint = "http://localhost:9000";
-  private String accessKey = "minioadmin";
-  private String secretKey = "minioadmin";
+  private String accessKey = "";
+  private String secretKey = "";
   private String bucket = "file-upload-demo";
   private String region = "us-east-1";
-  private boolean secure = false;
 
   public String getLocation() {
     return location;
@@ -61,11 +60,4 @@ public class StorageProperties {
     this.region = region;
   }
 
-  public boolean isSecure() {
-    return secure;
-  }
-
-  public void setSecure(boolean secure) {
-    this.secure = secure;
-  }
 }

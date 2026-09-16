@@ -1,0 +1,32 @@
+name: files-upload-download
+
+services:
+  files-upload-download:
+    build: .
+    image: files-upload-download:0.0.1
+    container_name: files-upload-download
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      STORAGE_TYPE: ${STORAGE_TYPE:-local}
+      STORAGE_LOCATION: /data
+      FILES_AUTH_TOKEN: ${FILES_AUTH_TOKEN:-}
+      SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE: ${MAX_FILE_SIZE:-10MB}
+      SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE: ${MAX_REQUEST_SIZE:-10MB}
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:h2:mem:filedb}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-sa}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-}
+      STORAGE_ENDPOINT: ${STORAGE_ENDPOINT:-http://localhost:9000}
+      STORAGE_ACCESS_KEY: ${STORAGE_ACCESS_KEY:-}
+      STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY:-}
+      STORAGE_BUCKET: ${STORAGE_BUCKET:-file-upload-demo}
+      STORAGE_REGION: ${STORAGE_REGION:-us-east-1}
+    volumes:
+      - ./upload-dir:/data
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8080/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3

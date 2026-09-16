@@ -93,9 +93,11 @@ public class FileUploadServiceTests {
   }
 
   @Test
-  public void savePermitted() {
-    service.store(new MockMultipartFile("foo", "bar/../foo.txt",
-        MediaType.TEXT_PLAIN_VALUE, "Hello, World".getBytes()));
+  public void normalizedTraversalIsNotPermitted() {
+    assertThrows(StorageException.class, () -> {
+      service.store(new MockMultipartFile("foo", "bar/../foo.txt",
+          MediaType.TEXT_PLAIN_VALUE, "Hello, World".getBytes()));
+    });
   }
 
 }

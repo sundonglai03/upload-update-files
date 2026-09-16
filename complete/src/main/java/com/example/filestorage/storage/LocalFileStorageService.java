@@ -35,10 +35,7 @@ public class LocalFileStorageService implements StorageService {
       if (file == null || file.isEmpty()) {
         throw new StorageException("Failed to store empty file.");
       }
-      String originalFilename = file.getOriginalFilename();
-      if (originalFilename == null || originalFilename.isBlank()) {
-        throw new StorageException("Filename cannot be empty.");
-      }
+      String originalFilename = FilenamePolicy.requireSafe(file.getOriginalFilename());
       Path destinationFile = this.rootLocation.resolve(Paths.get(originalFilename))
           .normalize()
           .toAbsolutePath();
@@ -66,7 +63,7 @@ public class LocalFileStorageService implements StorageService {
 
   @Override
   public Path load(String filename) {
-    return rootLocation.resolve(filename);
+    return rootLocation.resolve(FilenamePolicy.requireSafe(filename));
   }
 
   @Override
@@ -94,7 +91,7 @@ public class LocalFileStorageService implements StorageService {
 
   @Override
   public void delete(String filename) {
-    Path target = rootLocation.resolve(filename).normalize().toAbsolutePath();
+    Path target = rootLocation.resolve(FilenamePolicy.requireSafe(filename)).normalize().toAbsolutePath();
     if (target.getParent() != null && target.getParent().equals(rootLocation.toAbsolutePath())) {
       try {
         Files.deleteIfExists(target);

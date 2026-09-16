@@ -34,10 +34,7 @@ public class DatabaseStorageService implements StorageService {
       throw new StorageException("Failed to store empty file.");
     }
 
-    String originalFilename = file.getOriginalFilename();
-    if (originalFilename == null || originalFilename.isBlank()) {
-      throw new StorageException("Filename cannot be empty.");
-    }
+    String originalFilename = FilenamePolicy.requireSafe(file.getOriginalFilename());
 
     try {
       byte[] content = file.getBytes();
@@ -65,13 +62,14 @@ public class DatabaseStorageService implements StorageService {
 
   @Override
   public Path load(String filename) {
-    return Paths.get(filename);
+    return Paths.get(FilenamePolicy.requireSafe(filename));
   }
 
   @Override
   @Transactional(readOnly = true)
   public Resource loadAsResource(String filename) {
-    return storageFileRepository.findByFilename(filename)
+    String safeFilename = FilenamePolicy.requireSafe(filename);
+    return storageFileRepository.findByFilename(safeFilename)
         .map(file -> new ByteArrayResource(file.getContent()) {
           @Override
           public String getFilename() {
@@ -90,6 +88,6 @@ public class DatabaseStorageService implements StorageService {
   @Override
   @Transactional
   public void delete(String filename) {
-    storageFileRepository.deleteByFilename(filename);
+    storageFileRepository.deleteByFilename(FilenamePolicy.requireSafe(filename));
   }
 }

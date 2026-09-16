@@ -32,12 +32,15 @@ public class ObjectStorageService implements StorageService {
 
   public ObjectStorageService(StorageProperties properties) {
     this.properties = properties;
+    if (properties.getAccessKey().isBlank() || properties.getSecretKey().isBlank()) {
+      throw new StorageException(
+          "Object storage requires storage.access-key and storage.secret-key.");
+    }
     this.minioClient = MinioClient.builder()
         .endpoint(properties.getEndpoint())
         .credentials(properties.getAccessKey(), properties.getSecretKey())
         .region(properties.getRegion())
         .build();
-    init();
   }
 
   @Override
@@ -58,10 +61,7 @@ public class ObjectStorageService implements StorageService {
       throw new StorageException("Failed to store empty file.");
     }
     try {
-      String filename = file.getOriginalFilename();
-      if (filename == null || filename.isBlank()) {
-        throw new StorageException("Filename cannot be empty.");
-      }
+      String filename = FilenamePolicy.requireSafe(file.getOriginalFilename());
       minioClient.putObject(
           io.minio.PutObjectArgs.builder()
               .bucket(properties.getBucket())
@@ -95,18 +95,19 @@ public class ObjectStorageService implements StorageService {
 
   @Override
   public Path load(String filename) {
-    return Paths.get(filename);
+    return Paths.get(FilenamePolicy.requireSafe(filename));
   }
 
   @Override
   public Resource loadAsResource(String filename) {
+    String safeFilename = FilenamePolicy.requireSafe(filename);
     try {
       byte[] bytes = minioClient.getObject(
-          GetObjectArgs.builder().bucket(properties.getBucket()).object(filename).build()).readAllBytes();
+          GetObjectArgs.builder().bucket(properties.getBucket()).object(safeFilename).build()).readAllBytes();
       return new ByteArrayResource(bytes) {
         @Override
         public String getFilename() {
-          return filename;
+          return safeFilename;
         }
       };
     } catch (Exception e) {
@@ -130,8 +131,9 @@ public class ObjectStorageService implements StorageService {
 
   @Override
   public void delete(String filename) {
+    String safeFilename = FilenamePolicy.requireSafe(filename);
     try {
-      minioClient.removeObject(RemoveObjectArgs.builder().bucket(properties.getBucket()).object(filename).build());
+      minioClient.removeObject(RemoveObjectArgs.builder().bucket(properties.getBucket()).object(safeFilename).build());
     } catch (Exception e) {
       throw new StorageException("Failed to delete file: " + filename, e);
     }
