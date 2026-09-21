@@ -1,12 +1,12 @@
 FROM maven:3.9.11-eclipse-temurin-17 AS build
 
-# cache mount 把 Maven 本地仓库（约定路径 /root/.m2）挂到宿主机构建缓存上。
-# pom 变动 / 换构建机时依赖命中本地仓库，不再重下；build 阶段会被丢弃，不进最终镜像。
+# 先只拷 pom.xml 拉依赖：只要 pom.xml 不变，改源码不会重新下载依赖。
+# 构建机装了 buildx 后，可以给这两条 RUN 加上 --mount=type=cache,target=/root/.m2。
 WORKDIR /app
 COPY pom.xml ./
-RUN --mount=type=cache,target=/root/.m2 mvn -B -q dependency:go-offline
+RUN mvn -B -q dependency:go-offline
 COPY src ./src
-RUN --mount=type=cache,target=/root/.m2 mvn -B -q package -DskipTests
+RUN mvn -B -q package -DskipTests
 
 FROM eclipse-temurin:17-jre-jammy
 
