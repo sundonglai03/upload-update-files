@@ -1,14 +1,12 @@
 FROM maven:3.9.11-eclipse-temurin-17 AS build
 
-# 依赖缓存挂到当前目录 /app/.m2（build 阶段本身会被丢弃，不进最终镜像）。
-# pom 变动 / 换构建机时，Maven 依赖命中本地仓库，不再重下。
-ENV MAVEN_OPTS="-Dmaven.repo.local=/app/.m2/repository"
-
+# cache mount 把 Maven 本地仓库（约定路径 /root/.m2）挂到宿主机构建缓存上。
+# pom 变动 / 换构建机时依赖命中本地仓库，不再重下；build 阶段会被丢弃，不进最终镜像。
 WORKDIR /app
 COPY pom.xml ./
-RUN --mount=type=cache,target=/app/.m2 mvn -B -q dependency:go-offline
+RUN --mount=type=cache,target=/root/.m2 mvn -B -q dependency:go-offline
 COPY src ./src
-RUN --mount=type=cache,target=/app/.m2 mvn -B -q package -DskipTests
+RUN --mount=type=cache,target=/root/.m2 mvn -B -q package -DskipTests
 
 FROM eclipse-temurin:17-jre-jammy
 
